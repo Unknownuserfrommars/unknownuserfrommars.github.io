@@ -1,10 +1,21 @@
-// Wraps _body.html (the portable page content) into a standalone index.html.
+// Wraps _body.html (the portable artifact source) into a standalone index.html.
 // Run: node build.js
 const fs = require('fs');
 const path = require('path');
 
 const dir = __dirname;
-const body = fs.readFileSync(path.join(dir, '_body.html'), 'utf8');
+const fragment = fs.readFileSync(path.join(dir, '_body.html'), 'utf8');
+const contentMarker = '<!-- page-content -->';
+const markerIndex = fragment.indexOf(contentMarker);
+
+if (markerIndex === -1 || fragment.indexOf(contentMarker, markerIndex + 1) !== -1) {
+  throw new Error(`_body.html must contain exactly one ${contentMarker} marker`);
+}
+
+// The artifact keeps its title, font links, early preference script and styles
+// above the marker. Put those elements in the document head on the real site.
+const artifactHead = fragment.slice(0, markerIndex).trim();
+const body = fragment.slice(markerIndex + contentMarker.length).trimStart();
 
 const favicon =
   'data:image/svg+xml,' +
@@ -20,17 +31,25 @@ const head = [
   '<meta charset="utf-8">',
   '<meta name="viewport" content="width=device-width, initial-scale=1">',
   '<meta name="color-scheme" content="light dark">',
-  '<meta name="description" content="Kevin Z. (unknownuserfrommars) - building FeOx, a numerical language in Rust; regressionmadesimple on PyPI; Cyrene-Agent. Projects, stack and contact.">',
-  '<meta name="author" content="Kevin Z.">',
+  '<meta name="description" content="Kevin Zhou (unknownuserfrommars) builds QuickRun, regressionmadesimple v4, and robotics patches; collaborator on FeOx, Cyrene-Agent, and Conflict.">',
+  '<meta name="author" content="Kevin Zhou">',
   '<link rel="canonical" href="https://kevin-z.com/">',
   '<meta property="og:type" content="website">',
   '<meta property="og:url" content="https://kevin-z.com/">',
-  '<meta property="og:title" content="Kevin Z. - unknownuserfrommars">',
-  '<meta property="og:description" content="Mars is red because of rust. Small, sharp tools: FeOx, regressionmadesimple, Cyrene-Agent.">',
-  '<meta name="twitter:card" content="summary">',
+  '<meta property="og:title" content="Kevin Zhou - unknownuserfrommars">',
+  '<meta property="og:description" content="Small, sharp tools: QuickRun, regressionmadesimple v4, and robotics patches.">',
+  '<meta property="og:image" content="https://kevin-z.com/og.png">',
+  '<meta property="og:image:width" content="1200">',
+  '<meta property="og:image:height" content="630">',
+  '<meta property="og:image:alt" content="Kevin Zhou - unknownuserfrommars - small, sharp tools">',
+  '<meta name="twitter:card" content="summary_large_image">',
   '<meta name="twitter:creator" content="@_Kev1511">',
+  '<meta name="twitter:title" content="Kevin Zhou - unknownuserfrommars">',
+  '<meta name="twitter:description" content="Small, sharp tools: QuickRun, regressionmadesimple v4, and robotics patches.">',
+  '<meta name="twitter:image" content="https://kevin-z.com/og.png">',
   '<link rel="icon" href="' + favicon + '">',
   '<style>*{box-sizing:border-box}html{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>',
+  artifactHead,
   '</head>',
   '<body>',
 ].join('\n');
