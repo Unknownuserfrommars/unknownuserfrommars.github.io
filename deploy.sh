@@ -10,7 +10,7 @@ set -euo pipefail
 
 HOST="${HOST:-root@130.94.33.254}"
 KEY="${KEY:-$HOME/.ssh/kevin-z-deploy}"
-WEBROOT="${WEBROOT:-/var/www/kevin-z}"
+WEBROOT="${WEBROOT:-/var/www/kevin-z.com}"
 SITE_URL="${SITE_URL:-https://kevin-z.com}"
 DRY=""
 [ "${1:-}" = "--dry-run" ] && DRY="--dry-run"

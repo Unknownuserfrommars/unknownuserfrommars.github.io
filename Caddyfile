@@ -4,13 +4,11 @@
 #   sudo caddy validate --config /etc/caddy/Caddyfile
 #   sudo systemctl reload caddy
 #
-# Only index.html, og.jpg and the assets below are meant to be public. The build
-# inputs (_body.html, build.js, Caddyfile itself, the git metadata) sit in the
-# same directory, so they are explicitly denied — a bare file_server would serve
-# them verbatim.
+# Only index.html and og.jpg are deployed to the public web root. The private
+# matcher is defense in depth in case build inputs are ever copied there.
 
 kevin-z.com, www.kevin-z.com {
-	root * /var/www/kevin-z
+	root * /var/www/kevin-z.com
 
 	encode zstd gzip
 
@@ -31,4 +29,24 @@ kevin-z.com, www.kevin-z.com {
 	header /index.html Cache-Control "public, max-age=0, must-revalidate"
 
 	file_server
+}
+
+# Existing app on the same server. Keep this block when deploying the portfolio.
+travelyou.kevin-z.com {
+	encode zstd gzip
+
+	reverse_proxy 127.0.0.1:3000
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output file /var/log/caddy/travelyou-access.log
+		format console
+	}
 }
