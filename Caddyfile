@@ -1,0 +1,34 @@
+# Caddy config for kevin-z.com.
+#
+# Deploy: copy this repo to the server, point `root` at it, then
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# Only index.html, og.jpg and the assets below are meant to be public. The build
+# inputs (_body.html, build.js, Caddyfile itself, the git metadata) sit in the
+# same directory, so they are explicitly denied — a bare file_server would serve
+# them verbatim.
+
+kevin-z.com, www.kevin-z.com {
+	root * /var/www/kevin-z
+
+	encode zstd gzip
+
+	# Build inputs and repo metadata are not public.
+	@private path /_* /build.js /Caddyfile /README.md /.git /.git/* /_config.yml
+	respond @private 404
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+	}
+
+	# The page is one file; the OG image is the only heavy asset.
+	@static path *.jpg *.png *.svg *.ico *.woff2
+	header @static Cache-Control "public, max-age=604800, immutable"
+	header /index.html Cache-Control "public, max-age=0, must-revalidate"
+
+	file_server
+}

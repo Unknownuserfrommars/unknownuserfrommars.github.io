@@ -3,13 +3,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <script>
+  /* Applies stored preferences before first paint. Never gates content: the
+     .js class only enables reveal animations, and the page script clears it
+     if anything downstream fails. */
   (function(){
     var root=document.documentElement;
     root.classList.add('js');
     try{
       var theme=localStorage.getItem('kz-theme');
       var lang=localStorage.getItem('kz-lang');
-      if(theme){ root.setAttribute('data-theme',theme); }
+      if(theme==='light'||theme==='dark'){ root.setAttribute('data-theme',theme); }
       if(lang==='zh'){ root.setAttribute('data-lang','zh'); root.lang='zh-CN'; }
     }catch(e){}
   })();
@@ -17,7 +20,7 @@
 <style>
   :root{
     --ground:#f5f0ea; --surface:#fffdfa; --sunk:#ebe3da;
-    --ink:#1a1310; --ink-soft:#4a3a32; --muted:#7d6b60;
+    --ink:#1a1310; --ink-soft:#4a3a32; --muted:#6f5d52;
     --rule:#ddd0c4; --rule-soft:#e8ded4;
     --hematite:#a8380a; --hematite-lit:#c1440e; --ochre:#9a6b12;
     --tile-ink:#f2e9e2; --tile-ground:#1c1613;
@@ -51,7 +54,17 @@
   code{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.88em; color:var(--hematite)}
   :focus-visible{outline:2px solid var(--hematite-lit); outline-offset:3px; border-radius:2px}
 
-  #grain{position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5; mix-blend-mode:overlay}
+  .skip{
+    position:absolute; left:-9999px; top:0; z-index:10;
+    background:var(--surface); color:var(--ink); border:1px solid var(--hematite);
+    border-radius:0 0 4px 0; padding:.7rem 1.1rem; text-decoration:none; font-weight:700;
+  }
+  .skip:focus{left:0}
+
+  #grain{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    opacity:.5; mix-blend-mode:overlay; background-repeat:repeat;
+  }
   .wrap{position:relative; z-index:1}
   .spine{width:var(--spine); margin-inline:auto}
 
@@ -93,10 +106,13 @@
     font-size:clamp(3rem,10vw,6.2rem); line-height:.94; letter-spacing:-.022em;
     margin:.5rem 0 0; text-wrap:balance;
   }
-  .hero h1 em{
-    font-style:italic;
-    background:linear-gradient(96deg,var(--hematite) 8%,var(--ochre) 92%);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
+  /* Painted colour first so the word survives if background-clip is unsupported. */
+  .hero h1 em{font-style:italic; color:var(--hematite)}
+  @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    .hero h1 em{
+      background:linear-gradient(96deg,var(--hematite) 8%,var(--ochre) 92%);
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
   }
   .hero .lede{font-size:1.14rem; max-width:52ch}
   .status{
@@ -168,7 +184,7 @@
   /* collaborations get a lighter treatment than owned work */
   .subhead{
     margin:2.9rem 0 0; font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size:.68rem; letter-spacing:.15em; text-transform:uppercase; color:var(--hematite);
+    font-size:.68rem; letter-spacing:.15em; text-transform:uppercase; color:var(--hematite); font-weight:600;
   }
   .subnote{margin:.45rem 0 0; color:var(--muted); font-size:.92rem; max-width:56ch}
   .collab{list-style:none; margin:1.2rem 0 0; padding:0}
@@ -179,7 +195,7 @@
   }
   @media(min-width:720px){ .collab a{grid-template-columns:11rem 1fr auto; align-items:baseline} }
   .collab a:hover{color:var(--hematite)}
-  .collab .nm{font-weight:700}
+  .collab h3{margin:0; font-size:1rem; font-weight:700; font-family:inherit; line-height:inherit}
   .collab .ds{color:var(--ink-soft); font-size:.94rem; margin:0}
   .collab a:hover .ds{color:inherit}
 
@@ -199,26 +215,26 @@
   }
   .stack ul{margin:0; padding:0; list-style:none; display:grid; gap:.28rem}
   .stack li{color:var(--ink-soft); font-size:.94rem; display:flex; justify-content:space-between; gap:1rem; border-bottom:1px dotted var(--rule); padding-bottom:.28rem}
-  .stack li span{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.66rem; color:var(--muted); letter-spacing:.06em}
+  .stack .note{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.66rem; color:var(--muted); letter-spacing:.06em; text-align:right}
 
   .signals{list-style:none; margin:2rem 0 0; padding:0}
   .signals li{display:grid; gap:.1rem .4rem; grid-template-columns:1fr; padding:1.05rem 0; border-bottom:1px solid var(--rule-soft)}
   @media(min-width:720px){ .signals li{grid-template-columns:6.5rem 1fr auto; align-items:baseline} }
   .yr{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.72rem; color:var(--hematite); letter-spacing:.08em; font-variant-numeric:tabular-nums}
   .sig-t{margin:0; color:var(--ink); font-weight:500}
-  .sig-t small{display:block; color:var(--muted); font-weight:400; font-size:.85rem; margin-top:.1rem}
+  .sig-t .sub{display:block; color:var(--muted); font-weight:400; font-size:.85rem; margin-top:.1rem}
   .role{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
   .badges{display:flex; flex-wrap:wrap; gap:.4rem; margin-top:1.6rem}
 
   /* IGCSE result strip */
   .grades{display:grid; gap:1px; margin-top:1.3rem; background:var(--rule-soft); border:1px solid var(--rule-soft); border-radius:4px; overflow:hidden}
   @media(min-width:560px){ .grades{grid-template-columns:repeat(4,1fr)} }
-  .grades div{background:var(--surface); padding:.95rem 1rem; display:flex; flex-direction:column; gap:.15rem}
-  .grades .g{
+  .grades > div{background:var(--surface); padding:.95rem 1rem}
+  .grades dt{
     font-family:"Instrument Serif",ui-serif,Georgia,serif; font-size:2rem; line-height:1;
     color:var(--hematite);
   }
-  .grades .s{font-size:.82rem; color:var(--ink-soft); line-height:1.35}
+  .grades dd{margin:.15rem 0 0; font-size:.82rem; color:var(--ink-soft); line-height:1.35}
 
   .links{display:grid; gap:1px; margin-top:2rem; background:var(--rule-soft); border-block:1px solid var(--rule-soft)}
   @media(min-width:640px){ .links{grid-template-columns:1fr 1fr} }
@@ -245,12 +261,10 @@
   .sig-mark{letter-spacing:.06em; color:var(--muted)}
   .sig-mark sub{font-size:.62em; vertical-align:-.18em; letter-spacing:0}
 
+  /* Every bilingual pair is a <span>, so one inline rule covers all of them. */
   [data-zh]{display:none}
   :root[data-lang="zh"] [data-en]{display:none}
-  :root[data-lang="zh"] span[data-zh]{display:inline}
-  :root[data-lang="zh"] p[data-zh],
-  :root[data-lang="zh"] h2[data-zh],
-  :root[data-lang="zh"] small[data-zh]{display:block}
+  :root[data-lang="zh"] [data-zh]{display:inline}
 
   @media(prefers-reduced-motion:no-preference){
     .js .reveal{opacity:0; transform:translateY(14px); transition:opacity .7s ease, transform .7s ease}
@@ -259,7 +273,8 @@
 </style>
 
 <!-- page-content -->
-<canvas id="grain" aria-hidden="true"></canvas>
+<a class="skip" href="#main"><span data-en>Skip to content</span><span data-zh>跳到正文</span></a>
+<div id="grain" aria-hidden="true"></div>
 
 <div class="wrap">
 <div class="spine">
@@ -267,17 +282,21 @@
   <header class="masthead">
     <span><b>Kevin Zhou</b> &nbsp;/&nbsp; unknownuserfrommars</span>
     <span class="controls">
-      <button class="ctl" id="lang" type="button" aria-label="Switch language">中文</button>
-      <button class="ctl" id="theme" type="button" aria-label="Switch theme">Theme</button>
+      <button class="ctl" id="lang" type="button">中文</button>
+      <button class="ctl" id="theme" type="button">Auto</button>
     </span>
   </header>
+
+  <main id="main">
 
   <section class="hero">
     <div>
       <p class="eyebrow">Fe &middot; 26 &middot; Ferrum</p>
-      <h1>Mars is red<br>because of <em>rust</em>.</h1>
-      <p class="lede" data-en>I build small, sharp tools &mdash; an ML wrapper that fits in one import, a Windows launcher nobody asked for, and the patches that make my robot play football better. Mostly Python and C++, mostly at night, mostly because something annoyed me first.</p>
-      <p class="lede" data-zh>我写小而锋利的工具——一个只需一次 import 的机器学习封装、一个没人要求过的 Windows 启动器，以及让我的机器人把球踢得更好的补丁。多半用 Python 和 C++，多半在深夜，多半是因为某件事先惹到了我。</p>
+      <h1><span data-en>Mars is red<br>because of <em>rust</em>.</span><span data-zh>火星是红的，<br>因为<em>铁锈</em>。</span></h1>
+      <p class="lede">
+        <span data-en>I build small, sharp tools &mdash; an ML wrapper that fits in one import, a Windows launcher nobody asked for, and the patches that make my robot play football better. Mostly Python and C++, mostly at night, mostly because something annoyed me first.</span>
+        <span data-zh>我写小而锋利的工具——一个只需一次 import 的机器学习封装、一个没人要求过的 Windows 启动器，以及让我的机器人把球踢得更好的补丁。多半用 Python 和 C++，多半在深夜，多半是因为某件事先惹到了我。</span>
+      </p>
       <p class="status"><span class="dot"></span><span data-en>Currently: AP, quickrun, rms v4</span><span data-zh>目前：AP、quickrun、rms v4</span></p>
     </div>
 
@@ -286,214 +305,266 @@
       <div class="tile-sym">Fe</div>
       <div class="tile-name">unknownuserfrommars</div>
       <dl>
-        <dt>Study</dt><dd>AP</dd>
-        <dt>Zone</dt><dd>UTC+08</dd>
-        <dt>Repos</dt><dd>25</dd>
-        <dt>Langs</dt><dd>Py &middot; C++ &middot; TS</dd>
-        <dt>PyPI</dt><dd>4 packages</dd>
+        <dt><span data-en>Study</span><span data-zh>在读</span></dt><dd>AP</dd>
+        <dt><span data-en>Zone</span><span data-zh>时区</span></dt><dd>UTC+08</dd>
+        <dt><span data-en>Langs</span><span data-zh>语言</span></dt><dd>Py &middot; C++ &middot; Java</dd>
+        <dt><span data-en>PyPI</span><span data-zh>PyPI</span></dt><dd><span data-en>4 packages</span><span data-zh>4 个包</span></dd>
       </dl>
     </aside>
   </section>
 
   <section class="reveal">
-    <p class="eyebrow">Now</p>
-    <h2 data-en>What&rsquo;s on the bench</h2>
-    <h2 data-zh>正在做的事</h2>
+    <p class="eyebrow"><span data-en>Now</span><span data-zh>近况</span></p>
+    <h2><span data-en>What&rsquo;s on the bench</span><span data-zh>正在做的事</span></h2>
     <ul class="now">
       <li>
         <span class="k">rms v4</span>
-        <p class="v" data-en><b>Shrinking the ML boilerplate.</b> A stateful <code>Experiment</code> pipeline &mdash; column typing, split management, model dedup, and full state persistence.</p>
-        <p class="v" data-zh><b>压缩机器学习的样板代码。</b>有状态的 <code>Experiment</code> 流程——列类型推断、切分管理、模型去重与完整状态持久化。</p>
+        <p class="v">
+          <span data-en><b>Shrinking the ML boilerplate.</b> A stateful <code>Experiment</code> pipeline &mdash; column typing, split management, model dedup, and full state persistence.</span>
+          <span data-zh><b>压缩机器学习的样板代码。</b>有状态的 <code>Experiment</code> 流程——列类型推断、切分管理、模型去重与完整状态持久化。</span>
+        </p>
       </li>
       <li>
         <span class="k">quickrun</span>
-        <p class="v" data-en><b>Fixing Win+R.</b> Windows will launch <code>notepad</code> from the run box but not your actual apps. quickrun binds any program to any alias, without admin rights.</p>
-        <p class="v" data-zh><b>修好 Win+R。</b>Windows 能从运行框启动 <code>notepad</code>，却启动不了你真正在用的程序。quickrun 把任意程序绑到任意别名上，且无需管理员权限。</p>
+        <p class="v">
+          <span data-en><b>Fixing Win+R.</b> Windows will launch <code>notepad</code> from the run box but not your actual apps. quickrun binds any program to any alias, without admin rights.</span>
+          <span data-zh><b>修好 Win+R。</b>Windows 能从运行框启动 <code>notepad</code>，却启动不了你真正在用的程序。quickrun 把任意程序绑到任意别名上，且无需管理员权限。</span>
+        </p>
       </li>
       <li>
-        <span class="k">the robot</span>
-        <p class="v" data-en><b>Making it play football.</b> A long-running patch series for my RoboCup robot &mdash; goalie logic, shot types, team signalling, and a lot of bugs found on an actual pitch.</p>
-        <p class="v" data-zh><b>让它踢球。</b>为我的 RoboCup 机器人持续维护的补丁系列——守门逻辑、射门类型、队内信号，以及大量在真实球场上发现的 bug。</p>
+        <span class="k"><span data-en>the robot</span><span data-zh>机器人</span></span>
+        <p class="v">
+          <span data-en><b>Making it play football.</b> A long-running patch series for my RoboCup robot &mdash; goalie logic, shot types, team signalling, and a lot of bugs found on an actual pitch.</span>
+          <span data-zh><b>让它踢球。</b>为我的 RoboCup 机器人持续维护的补丁系列——守门逻辑、射门类型、队内信号，以及大量在真实球场上发现的 bug。</span>
+        </p>
       </li>
       <li>
-        <span class="k">School</span>
-        <p class="v" data-en><b>Studying AP.</b> IGCSE is finished &mdash; A* in Physics and Chemistry, A in both First Language Chinese and First Language English.</p>
-        <p class="v" data-zh><b>在读 AP。</b>IGCSE 已经结束——物理与化学 A*，第一语言中文与第一语言英文均为 A。</p>
+        <span class="k"><span data-en>School</span><span data-zh>学业</span></span>
+        <p class="v">
+          <span data-en><b>Studying AP.</b> IGCSE is finished &mdash; A* in Physics and Chemistry, A in both First Language Chinese and First Language English.</span>
+          <span data-zh><b>在读 AP。</b>IGCSE 已经结束——物理与化学 A*，第一语言中文与第一语言英文均为 A。</span>
+        </p>
       </li>
     </ul>
   </section>
 
   <section class="reveal">
-    <p class="eyebrow">Work</p>
-    <h2 data-en>Things I&rsquo;ve actually shipped</h2>
-    <h2 data-zh>真正发布过的东西</h2>
-    <p class="lede" data-en>Mine, roughly in the order I&rsquo;d defend them.</p>
-    <p class="lede" data-zh>我自己的项目，大致按我愿意为它们辩护的顺序排列。</p>
+    <p class="eyebrow"><span data-en>Work</span><span data-zh>作品</span></p>
+    <h2><span data-en>Things I&rsquo;ve actually shipped</span><span data-zh>真正发布过的东西</span></h2>
+    <p class="lede">
+      <span data-en>Mine, roughly in the order I&rsquo;d defend them.</span>
+      <span data-zh>我自己的项目，大致按我愿意为它们辩护的顺序排列。</span>
+    </p>
 
     <div class="work">
       <a class="proj" href="https://github.com/Unknownuserfrommars/regressionmadesimple">
         <div class="proj-head"><h3>regressionmadesimple</h3><span class="lang">Python</span></div>
-        <p data-en>A minimalist ML toolkit wrapping scikit-learn. Import <code>rms</code> and go &mdash; plus a stateful Experiment class that manages the whole pipeline.</p>
-        <p data-zh>封装 scikit-learn 的极简机器学习工具包。import <code>rms</code> 即可开始，另有管理完整流程的有状态 Experiment 类。</p>
-        <div class="tags"><span class="tag live">On PyPI</span><span class="tag">v4.1</span><span class="tag">scikit-learn</span></div>
+        <p>
+          <span data-en>A minimalist ML toolkit wrapping scikit-learn. Import <code>rms</code> and go &mdash; plus a stateful Experiment class that manages the whole pipeline.</span>
+          <span data-zh>封装 scikit-learn 的极简机器学习工具包。import <code>rms</code> 即可开始，另有管理完整流程的有状态 Experiment 类。</span>
+        </p>
+        <div class="tags">
+          <span class="tag live"><span data-en>On PyPI</span><span data-zh>已上 PyPI</span></span>
+          <span class="tag">v4</span>
+          <span class="tag">scikit-learn</span>
+        </div>
       </a>
 
       <a class="proj" href="https://github.com/Unknownuserfrommars/booster-patch">
         <div class="proj-head"><h3>booster-patch</h3><span class="lang">C++</span></div>
-        <p data-en>The patch series for my RoboCup robot, built on the Booster T1 demo stack: goalie algorithms, shot types, team signalling, and tournament-compliance fixes.</p>
-        <p data-zh>我的 RoboCup 机器人所用的补丁系列，基于 Booster T1 演示栈，涵盖守门算法、射门类型、队内信号与赛事合规修复。</p>
-        <div class="tags"><span class="tag live">v2.2.9</span><span class="tag">RoboCup</span><span class="tag">Robotics</span></div>
+        <p>
+          <span data-en>The patch series for my RoboCup robot, built on the Booster T1 demo stack: goalie algorithms, shot types, team signalling, and tournament-compliance fixes.</span>
+          <span data-zh>我的 RoboCup 机器人所用的补丁系列，基于 Booster T1 演示栈，涵盖守门算法、射门类型、队内信号与赛事合规修复。</span>
+        </p>
+        <div class="tags">
+          <span class="tag live">RoboCup</span>
+          <span class="tag"><span data-en>Robotics</span><span data-zh>机器人</span></span>
+          <span class="tag"><span data-en>20+ releases</span><span data-zh>20+ 个版本</span></span>
+        </div>
       </a>
 
       <a class="proj" href="https://github.com/Unknownuserfrommars/quickrun">
         <div class="proj-head"><h3>quickrun</h3><span class="lang">Python</span></div>
-        <p data-en>Bind any Windows program to a Win+R alias. No admin rights, no restart &mdash; it writes to your own registry hive and works immediately.</p>
-        <p data-zh>把任意 Windows 程序绑定到 Win+R 别名。无需管理员权限，无需重启——只写入用户注册表，绑定即生效。</p>
-        <div class="tags"><span class="tag">Windows</span><span class="tag">Registry</span><span class="tag">CLI</span></div>
+        <p>
+          <span data-en>Bind any Windows program to a Win+R alias. No admin rights, no restart &mdash; it writes to your own registry hive and works immediately.</span>
+          <span data-zh>把任意 Windows 程序绑定到 Win+R 别名。无需管理员权限，无需重启——只写入用户注册表，绑定即生效。</span>
+        </p>
+        <div class="tags">
+          <span class="tag">Windows</span>
+          <span class="tag"><span data-en>Registry</span><span data-zh>注册表</span></span>
+          <span class="tag">CLI</span>
+        </div>
       </a>
 
       <a class="proj" href="https://github.com/Unknownuserfrommars/LightningRoute-Frontend">
         <div class="proj-head"><h3>LightningRoute-Frontend</h3><span class="lang">Python</span></div>
-        <p data-en>The frontend built at my first Moonshot 48, turning text and files into mind maps. The project later grew into three repositories.</p>
-        <p data-zh>我在第一场 Moonshot 48 做的前端，把文本与文件转成思维导图。这个项目后来扩展成了三个仓库。</p>
-        <div class="tags"><span class="tag">First Moonshot 48</span><span class="tag">Mind maps</span></div>
+        <p>
+          <span data-en>The frontend built at my first Moonshot 48, turning text and files into mind maps. The project later grew into three repositories.</span>
+          <span data-zh>我在第一场 Moonshot 48 做的前端，把文本与文件转成思维导图。这个项目后来扩展成了三个仓库。</span>
+        </p>
+        <div class="tags">
+          <span class="tag"><span data-en>First Moonshot 48</span><span data-zh>首场 Moonshot 48</span></span>
+          <span class="tag"><span data-en>Mind maps</span><span data-zh>思维导图</span></span>
+        </div>
       </a>
 
       <a class="proj" href="https://github.com/Unknownuserfrommars/riskpulse">
         <div class="proj-head"><h3>RiskPulse</h3><span class="lang">Python</span></div>
-        <p data-en>Real-time portfolio risk intelligence. Know your risk before the market moves.</p>
-        <p data-zh>实时投资组合风险监测。在市场变动之前先知道自己的风险。</p>
-        <div class="tags"><span class="tag">Finance</span><span class="tag">Realtime</span></div>
+        <p>
+          <span data-en>Real-time portfolio risk intelligence. Know your risk before the market moves.</span>
+          <span data-zh>实时投资组合风险监测。在市场变动之前先知道自己的风险。</span>
+        </p>
+        <div class="tags">
+          <span class="tag"><span data-en>Finance</span><span data-zh>金融</span></span>
+          <span class="tag"><span data-en>Realtime</span><span data-zh>实时</span></span>
+        </div>
       </a>
 
       <a class="proj" href="https://github.com/Unknownuserfrommars/morecsv">
         <div class="proj-head"><h3>morecsv</h3><span class="lang">Python</span></div>
-        <p data-en>An enhanced CSV library &mdash; automatic type handling, multithreaded read and write, and cleaning built in.</p>
-        <p data-zh>增强型 CSV 处理库——自动类型处理、多线程读写，并内置数据清洗。</p>
-        <div class="tags"><span class="tag live">On PyPI</span><span class="tag">Data</span></div>
+        <p>
+          <span data-en>An enhanced CSV library &mdash; automatic type handling, multithreaded read and write, and cleaning built in.</span>
+          <span data-zh>增强型 CSV 处理库——自动类型处理、多线程读写，并内置数据清洗。</span>
+        </p>
+        <div class="tags">
+          <span class="tag live"><span data-en>On PyPI</span><span data-zh>已上 PyPI</span></span>
+          <span class="tag"><span data-en>Data</span><span data-zh>数据</span></span>
+        </div>
       </a>
     </div>
 
-    <p class="subhead" data-en>With others</p>
-    <p class="subhead" data-zh>参与的项目</p>
-    <p class="subnote" data-en>Projects I contribute to but don&rsquo;t lead. Credit where it belongs.</p>
-    <p class="subnote" data-zh>我参与但不主导的项目。功劳归于该归的人。</p>
+    <p class="subhead"><span data-en>With others</span><span data-zh>参与的项目</span></p>
+    <p class="subnote">
+      <span data-en>Projects I contribute to but don&rsquo;t lead. Links go to the upstream repositories.</span>
+      <span data-zh>我参与但不主导的项目。链接指向上游仓库。</span>
+    </p>
     <ul class="collab">
-      <li><a href="https://github.com/Unknownuserfrommars/feox-1">
-        <span class="nm">FeOx</span>
-        <p class="ds" data-en>A lightweight interpreted language in Rust for numerical computation and algorithmic experimentation.</p>
-        <p class="ds" data-zh>用 Rust 实现的轻量解释型语言，面向数值计算与算法实验。</p>
-        <span class="role">Collaborator</span>
+      <li><a href="https://github.com/feox-lang/feox">
+        <h3>FeOx</h3>
+        <p class="ds">
+          <span data-en>A lightweight interpreted language in Rust for numerical computation and algorithmic experimentation.</span>
+          <span data-zh>用 Rust 实现的轻量解释型语言，面向数值计算与算法实验。</span>
+        </p>
+        <span class="role"><span data-en>Collaborator</span><span data-zh>协作者</span></span>
       </a></li>
       <li><a href="https://github.com/Unknownuserfrommars/Cyrene-Agent">
-        <span class="nm">Cyrene-Agent</span>
-        <p class="ds" data-en>An Electron Live2D desktop companion with its own DMAE memory engine, voice, and tool calls.</p>
-        <p class="ds" data-zh>基于 Electron 的 Live2D 桌面伴侣，自研 DMAE 记忆引擎，支持语音与工具调用。</p>
-        <span class="role">Collaborator</span>
+        <h3>Cyrene-Agent</h3>
+        <p class="ds">
+          <span data-en>An Electron Live2D desktop companion with its own DMAE memory engine, voice, and tool calls.</span>
+          <span data-zh>基于 Electron 的 Live2D 桌面伴侣，自研 DMAE 记忆引擎，支持语音与工具调用。</span>
+        </p>
+        <span class="role"><span data-en>Collaborator</span><span data-zh>协作者</span></span>
       </a></li>
-      <li><a href="https://github.com/Unknownuserfrommars/Conflict-fork-again2">
-        <span class="nm">Conflict</span>
-        <p class="ds" data-en>A realism-first tactical FPS in Godot &mdash; modular battlefields, a full weapon-cycle system, and physics that prefer accuracy to comfort.</p>
-        <p class="ds" data-zh>用 Godot 开发的拟真战术 FPS——模块化战场、完整的枪机循环系统，以及宁可真实也不迁就手感的物理。</p>
-        <span class="role">Collaborator</span>
+      <li><a href="https://github.com/JiYu133/Conflict">
+        <h3>Conflict</h3>
+        <p class="ds">
+          <span data-en>A realism-first tactical FPS in Godot &mdash; modular battlefields, a full weapon-cycle system, and physics that prefer accuracy to comfort.</span>
+          <span data-zh>用 Godot 开发的拟真战术 FPS——模块化战场、完整的枪机循环系统，以及宁可真实也不迁就手感的物理。</span>
+        </p>
+        <span class="role"><span data-en>Collaborator</span><span data-zh>协作者</span></span>
       </a></li>
     </ul>
 
     <div class="also">
+      <a href="https://github.com/Unknownuserfrommars/LightningRoute-Web">LightningRoute-Web</a>
       <a href="https://github.com/Unknownuserfrommars/BIOSVMRunner">BIOSVMRunner</a>
       <a href="https://github.com/Unknownuserfrommars/typebox-fork">typebox-fork</a>
       <a href="https://github.com/Unknownuserfrommars/RiseTrack">RiseTrack</a>
       <a href="https://github.com/Unknownuserfrommars/weatherscraper">weatherscraper</a>
       <a href="https://github.com/Unknownuserfrommars/fasthelp">fasthelp</a>
       <a href="https://github.com/Unknownuserfrommars/numberbaseconverter">numberbaseconverter</a>
-      <a href="https://github.com/Unknownuserfrommars/NBA-Casestudy">NBA-Casestudy</a>
-      <a href="https://github.com/Unknownuserfrommars?tab=repositories">all 25 &rarr;</a>
+      <a href="https://github.com/Unknownuserfrommars?tab=repositories"><span data-en>all repos &rarr;</span><span data-zh>全部仓库 &rarr;</span></a>
     </div>
   </section>
 
   <section class="reveal">
-    <p class="eyebrow">Stack</p>
-    <h2 data-en>What I reach for</h2>
-    <h2 data-zh>常用的工具</h2>
+    <p class="eyebrow"><span data-en>Stack</span><span data-zh>技术栈</span></p>
+    <h2><span data-en>What I reach for</span><span data-zh>常用的工具</span></h2>
     <div class="stack">
       <div>
-        <h3>Languages</h3>
+        <h3><span data-en>Languages</span><span data-zh>语言</span></h3>
         <ul>
-          <li>Python <span>daily</span></li>
-          <li>C++ <span>the robot</span></li>
-          <li>TypeScript <span>web</span></li>
-          <li>Java <span>LightningRoute</span></li>
-          <li>Rust <span>collab</span></li>
+          <li>Python <span class="note"><span data-en>daily</span><span data-zh>每天</span></span></li>
+          <li>C++ <span class="note"><span data-en>the robot</span><span data-zh>机器人</span></span></li>
+          <li>Java <span class="note"><span data-en>a bit</span><span data-zh>会一点</span></span></li>
+          <li>Rust &middot; TS <span class="note"><span data-en>on collabs</span><span data-zh>协作项目</span></span></li>
         </ul>
       </div>
       <div>
-        <h3>Data &amp; ML</h3>
+        <h3><span data-en>Data &amp; ML</span><span data-zh>数据与机器学习</span></h3>
         <ul>
-          <li>scikit-learn <span>wrapped it</span></li>
-          <li>pandas <span>daily</span></li>
-          <li>Plotly <span>charts</span></li>
-          <li>Streamlit <span>demos</span></li>
-          <li>Kaggle <span>practice</span></li>
+          <li>scikit-learn <span class="note"><span data-en>wrapped it</span><span data-zh>封装过</span></span></li>
+          <li>pandas <span class="note"><span data-en>daily</span><span data-zh>每天</span></span></li>
+          <li>Plotly <span class="note"><span data-en>charts</span><span data-zh>图表</span></span></li>
+          <li>Streamlit <span class="note"><span data-en>demos</span><span data-zh>演示</span></span></li>
+          <li>Kaggle <span class="note"><span data-en>practice</span><span data-zh>练手</span></span></li>
         </ul>
       </div>
       <div>
-        <h3>Build &amp; ship</h3>
+        <h3><span data-en>Build &amp; ship</span><span data-zh>构建与发布</span></h3>
         <ul>
-          <li>PyPI <span>4 packages</span></li>
-          <li>Godot <span>collab</span></li>
-          <li>VS Code <span>always</span></li>
-          <li>Caddy <span>this site</span></li>
-          <li>git <span>reluctantly</span></li>
+          <li>PyPI <span class="note"><span data-en>4 packages</span><span data-zh>4 个包</span></span></li>
+          <li>npm <span class="note"><span data-en>JS side</span><span data-zh>JS 那边</span></span></li>
+          <li>VS Code <span class="note"><span data-en>always</span><span data-zh>一直用</span></span></li>
+          <li>Godot <span class="note"><span data-en>on collabs</span><span data-zh>协作项目</span></span></li>
+          <li>git <span class="note"><span data-en>reluctantly</span><span data-zh>不情愿地</span></span></li>
         </ul>
       </div>
     </div>
   </section>
 
   <section class="reveal">
-    <p class="eyebrow">Signals</p>
-    <h2 data-en>Rooms I&rsquo;ve been in</h2>
-    <h2 data-zh>参加过的场合</h2>
-    <p class="lede" data-en>Three Moonshot 48 hackathons, a robot football competition, and the exams in between.</p>
-    <p class="lede" data-zh>三场 Moonshot 48 黑客松、一场机器人足球比赛，以及夹在中间的考试。</p>
+    <p class="eyebrow"><span data-en>Signals</span><span data-zh>经历</span></p>
+    <h2><span data-en>Rooms I&rsquo;ve been in</span><span data-zh>参加过的场合</span></h2>
+    <p class="lede">
+      <span data-en>Three Moonshot 48 hackathons, a robot football competition, and the exams in between.</span>
+      <span data-zh>三场 Moonshot 48 黑客松、一场机器人足球比赛，以及夹在中间的考试。</span>
+    </p>
     <ul class="signals">
       <li>
         <span class="yr">2026.08</span>
-        <p class="sig-t">Moonshot 48 &mdash; third<small data-en>Beijing session.</small><small data-zh>北京场。</small></p>
-        <span class="role">Participant</span>
+        <p class="sig-t"><span data-en>Moonshot 48 &mdash; third</span><span data-zh>Moonshot 48 &mdash; 第三场</span>
+          <span class="sub"><span data-en>Beijing session.</span><span data-zh>北京场。</span></span></p>
+        <span class="role"><span data-en>Participant</span><span data-zh>参与者</span></span>
       </li>
       <li>
         <span class="yr">2026</span>
-        <p class="sig-t">RoboCup &mdash; Booster T1<small data-en>Maintaining the patch series my robot competes on.</small><small data-zh>维护我的机器人参赛所用的补丁系列。</small></p>
-        <span class="role">Patch author</span>
+        <p class="sig-t"><span data-en>RoboCup &mdash; Booster T1</span><span data-zh>RoboCup &mdash; Booster T1</span>
+          <span class="sub"><span data-en>Maintaining the patch series my robot competes on.</span><span data-zh>维护我的机器人参赛所用的补丁系列。</span></span></p>
+        <span class="role"><span data-en>Patch author</span><span data-zh>补丁作者</span></span>
       </li>
       <li>
         <span class="yr">2026</span>
-        <p class="sig-t">IGCSE completed<small data-en>Two A* and two A, including both first languages.</small><small data-zh>两个 A* 与两个 A，包含两门第一语言。</small></p>
-        <span class="role">Now on AP</span>
+        <p class="sig-t"><span data-en>IGCSE completed</span><span data-zh>完成 IGCSE</span>
+          <span class="sub"><span data-en>Two A* and two A, including both first languages.</span><span data-zh>两个 A* 与两个 A，包含两门第一语言。</span></span></p>
+        <span class="role"><span data-en>Now on AP</span><span data-zh>现读 AP</span></span>
       </li>
       <li>
         <span class="yr">2025.05</span>
-        <p class="sig-t">Moonshot 48 &mdash; second<small data-en>Chengdu session, Group 4 &mdash; RiseTrack.</small><small data-zh>成都场，第 4 组——RiseTrack。</small></p>
-        <span class="role">Team</span>
+        <p class="sig-t"><span data-en>Moonshot 48 &mdash; second</span><span data-zh>Moonshot 48 &mdash; 第二场</span>
+          <span class="sub"><span data-en>Chengdu session, Group 4 &mdash; RiseTrack.</span><span data-zh>成都场，第 4 组——RiseTrack。</span></span></p>
+        <span class="role"><span data-en>Team</span><span data-zh>团队</span></span>
       </li>
       <li>
         <span class="yr">2025.03</span>
-        <p class="sig-t">Moonshot 48 &mdash; first<small data-en>Built the LightningRoute frontend. The project outlived the weekend.</small><small data-zh>做了 LightningRoute 的前端。这个项目活得比那个周末久。</small></p>
-        <span class="role">Team</span>
+        <p class="sig-t"><span data-en>Moonshot 48 &mdash; first</span><span data-zh>Moonshot 48 &mdash; 第一场</span>
+          <span class="sub"><span data-en>Built the LightningRoute frontend. The project outlived the weekend.</span><span data-zh>做了 LightningRoute 的前端。这个项目活得比那个周末久。</span></span></p>
+        <span class="role"><span data-en>Team</span><span data-zh>团队</span></span>
       </li>
       <li>
-        <span class="yr">ongoing</span>
-        <p class="sig-t">USACO<small data-en>Working through past papers; solutions kept in a private repo.</small><small data-zh>刷历年真题，题解存在私有仓库里。</small></p>
-        <span class="role">Practice</span>
+        <span class="yr"><span data-en>ongoing</span><span data-zh>持续中</span></span>
+        <p class="sig-t"><span data-en>USACO</span><span data-zh>USACO</span>
+          <span class="sub"><span data-en>Working through past papers.</span><span data-zh>刷历年真题。</span></span></p>
+        <span class="role"><span data-en>Practice</span><span data-zh>练习</span></span>
       </li>
     </ul>
 
-    <div class="grades">
-      <div><span class="g">A*</span><span class="s" data-en>Physics</span><span class="s" data-zh>物理</span></div>
-      <div><span class="g">A*</span><span class="s" data-en>Chemistry</span><span class="s" data-zh>化学</span></div>
-      <div><span class="g">A</span><span class="s" data-en>First Language Chinese</span><span class="s" data-zh>第一语言 中文</span></div>
-      <div><span class="g">A</span><span class="s" data-en>First Language English</span><span class="s" data-zh>第一语言 英文</span></div>
-    </div>
+    <dl class="grades">
+      <div><dt>A*</dt><dd><span data-en>Physics</span><span data-zh>物理</span></dd></div>
+      <div><dt>A*</dt><dd><span data-en>Chemistry</span><span data-zh>化学</span></dd></div>
+      <div><dt>A</dt><dd><span data-en>First Language Chinese</span><span data-zh>第一语言 中文</span></dd></div>
+      <div><dt>A</dt><dd><span data-en>First Language English</span><span data-zh>第一语言 英文</span></dd></div>
+    </dl>
 
     <div class="badges">
       <span class="tag">Pair Extraordinaire &times;3</span>
@@ -504,34 +575,40 @@
   </section>
 
   <section class="reveal">
-    <p class="eyebrow">Off-hours</p>
-    <h2 data-en>The unserious half</h2>
-    <h2 data-zh>不正经的那一半</h2>
+    <p class="eyebrow"><span data-en>Off-hours</span><span data-zh>业余</span></p>
+    <h2><span data-en>The unserious half</span><span data-zh>不正经的那一半</span></h2>
     <div class="off">
-      <p data-en><b>Two first languages.</b> I sat IGCSE First Language Chinese and First Language English, which the system allows and nobody recommends. An A in each, so the joke landed.</p>
-      <p data-zh><b>两门第一语言。</b>我同时考了 IGCSE 第一语言中文和第一语言英文——制度允许，但没人建议这么干。两门都是 A，所以这个玩笑成立了。</p>
-      <p data-en><b>Honkai: Star Rail.</b> Enough of a fixture that one of the projects I help on is a desktop companion built around a character from it.</p>
-      <p data-zh><b>《崩坏：星穹铁道》。</b>沉迷到我参与的项目里，就有一个是围绕其中角色做的桌面伴侣。</p>
-      <p data-en><b>Tooling opinions.</b> I like Codex and Openclaw. I like Claude more, sometimes. I dislike using git, and use it constantly anyway.</p>
-      <p data-zh><b>关于工具的偏见。</b>我喜欢 Codex 和 Openclaw，有时更喜欢 Claude。我不喜欢用 git，但还是天天在用。</p>
+      <p>
+        <span data-en><b>Two first languages.</b> I sat IGCSE First Language Chinese and First Language English, which the system allows and nobody recommends. An A in each, so the joke landed.</span>
+        <span data-zh><b>两门第一语言。</b>我同时考了 IGCSE 第一语言中文和第一语言英文——制度允许，但没人建议这么干。两门都是 A，所以这个玩笑成立了。</span>
+      </p>
+      <p>
+        <span data-en><b>Honkai: Star Rail.</b> Enough of a fixture that one of the projects I help on is a desktop companion built around a character from it.</span>
+        <span data-zh><b>《崩坏：星穹铁道》。</b>沉迷到我参与的项目里，就有一个是围绕其中角色做的桌面伴侣。</span>
+      </p>
+      <p>
+        <span data-en><b>Tooling opinions.</b> I like Codex and Openclaw. I like Claude more, sometimes. I dislike using git, and use it constantly anyway.</span>
+        <span data-zh><b>关于工具的偏见。</b>我喜欢 Codex 和 Openclaw，有时更喜欢 Claude。我不喜欢用 git，但还是天天在用。</span>
+      </p>
     </div>
   </section>
 
   <section class="reveal">
-    <p class="eyebrow">Elsewhere</p>
-    <h2 data-en>Find me</h2>
-    <h2 data-zh>找到我</h2>
+    <p class="eyebrow"><span data-en>Elsewhere</span><span data-zh>其他地方</span></p>
+    <h2><span data-en>Find me</span><span data-zh>找到我</span></h2>
     <div class="links">
       <a href="https://github.com/Unknownuserfrommars"><span class="lbl">GitHub</span><span class="val">@Unknownuserfrommars</span></a>
       <a href="https://x.com/_Kev1511"><span class="lbl">X</span><span class="val">@_Kev1511</span></a>
-      <a href="https://pypi.org/user/Unknownuserfrommars/"><span class="lbl">PyPI</span><span class="val">4 packages</span></a>
-      <a href="mailto:kevinzhou1511@gmail.com"><span class="lbl">Email</span><span class="val">kevinzhou1511@gmail.com</span></a>
+      <a href="https://pypi.org/user/Unknownuserfrommars/"><span class="lbl">PyPI</span><span class="val"><span data-en>4 packages</span><span data-zh>4 个包</span></span></a>
+      <a href="mailto:kevinzhou1511@gmail.com"><span class="lbl"><span data-en>Email</span><span data-zh>邮箱</span></span><span class="val">kevinzhou1511@gmail.com</span></a>
     </div>
   </section>
 
+  </main>
+
   <footer>
     <span>Kevin Zhou &middot; kevin-z.com</span>
-    <span class="sig-mark">state: oxidizing &middot; &#10084;&#65039; H<sub>2</sub>FeO<sub>4</sub></span>
+    <span class="sig-mark">&#10084;&#65039; H<sub>2</sub>FeO<sub>4</sub></span>
   </footer>
 
 </div>
@@ -541,60 +618,84 @@
 (function(){
   var root=document.documentElement;
 
-  var themeBtn=document.getElementById('theme');
-  function isDark(){
-    return root.getAttribute('data-theme')==='dark' ||
-      (!root.hasAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  function revealAll(){
+    var els=document.querySelectorAll('.reveal');
+    for(var i=0;i<els.length;i++){ els[i].classList.add('in'); }
   }
-  function syncTheme(){
-    var dark=isDark();
-    themeBtn.textContent=dark ? 'Light' : 'Dark';
-    themeBtn.setAttribute('aria-label',dark ? 'Switch to light theme' : 'Switch to dark theme');
-  }
-  syncTheme();
-  themeBtn.addEventListener('click',function(){
-    var next = isDark() ? 'light' : 'dark';
-    root.setAttribute('data-theme',next);
-    try{ localStorage.setItem('kz-theme',next); }catch(e){}
+  /* Last-resort guard: if anything on the page throws, drop the class that
+     hides un-revealed sections so content can never be stranded at opacity 0. */
+  window.addEventListener('error',function(){ root.classList.remove('js'); revealAll(); });
+
+  /* Reveal is wired up first, so a failure below can never hide the page. */
+  try{
+    if(matchMedia('(prefers-reduced-motion: no-preference)').matches && 'IntersectionObserver' in window){
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+      },{rootMargin:'0px 0px -8% 0px'});
+      document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+    } else {
+      revealAll();
+    }
+  }catch(e){ root.classList.remove('js'); revealAll(); }
+
+  function isZh(){ return root.getAttribute('data-lang')==='zh'; }
+
+  /* Theme cycles Auto -> Light -> Dark. Auto removes the attribute entirely,
+     so the page follows the OS from then on. */
+  var syncTheme=function(){};
+  try{
+    var themeBtn=document.getElementById('theme');
+    var LABEL={
+      en:{auto:'Auto',light:'Light',dark:'Dark'},
+      zh:{auto:'自动',light:'浅色',dark:'深色'}
+    };
+    var NEXT={auto:'light',light:'dark',dark:'auto'};
+    function current(){ return root.getAttribute('data-theme') || 'auto'; }
+    syncTheme=function(){
+      var m=current(), L=isZh() ? LABEL.zh : LABEL.en;
+      themeBtn.textContent=L[m];
+      themeBtn.setAttribute('aria-label',
+        isZh() ? ('主题：'+L[m]+'，点击切换为'+L[NEXT[m]]+'。')
+               : ('Theme: '+L[m]+'. Switch to '+L[NEXT[m]]+'.'));
+    };
     syncTheme();
-  });
+    themeBtn.addEventListener('click',function(){
+      var next=NEXT[current()];
+      if(next==='auto'){ root.removeAttribute('data-theme'); } else { root.setAttribute('data-theme',next); }
+      try{ localStorage.setItem('kz-theme',next); }catch(e){}
+      syncTheme();
+    });
+  }catch(e){}
 
-  var btn=document.getElementById('lang');
-  function syncBtn(){
-    var zh=root.getAttribute('data-lang')==='zh';
-    root.lang=zh ? 'zh-CN' : 'en';
-    btn.textContent=zh ? 'EN' : '中文';
-    btn.setAttribute('aria-label',zh ? 'Switch language to English' : '切换为中文');
-  }
-  syncBtn();
-  btn.addEventListener('click',function(){
-    var next = root.getAttribute('data-lang')==='zh' ? 'en' : 'zh';
-    if(next==='zh'){ root.setAttribute('data-lang','zh'); } else { root.removeAttribute('data-lang'); }
-    try{ localStorage.setItem('kz-lang',next); }catch(e){}
-    syncBtn();
-  });
+  try{
+    var langBtn=document.getElementById('lang');
+    function syncLang(){
+      var zh=isZh();
+      root.lang=zh ? 'zh-CN' : 'en';
+      langBtn.textContent=zh ? 'EN' : '中文';
+      langBtn.setAttribute('aria-label',zh ? 'Switch language to English' : '切换为中文');
+      syncTheme();
+    }
+    syncLang();
+    langBtn.addEventListener('click',function(){
+      var next = isZh() ? 'en' : 'zh';
+      if(next==='zh'){ root.setAttribute('data-lang','zh'); } else { root.removeAttribute('data-lang'); }
+      try{ localStorage.setItem('kz-lang',next); }catch(e){}
+      syncLang();
+    });
+  }catch(e){}
 
-  var c=document.getElementById('grain'), x=c.getContext('2d');
-  function grain(){
-    var w=c.width=Math.max(1,Math.ceil(innerWidth/2)), h=c.height=Math.max(1,Math.ceil(innerHeight/2));
-    var img=x.createImageData(w,h), d=img.data;
+  /* One 128px noise tile, generated once and repeated by CSS. No resize work. */
+  try{
+    var n=128, cv=document.createElement('canvas');
+    cv.width=cv.height=n;
+    var g=cv.getContext('2d'), img=g.createImageData(n,n), d=img.data;
     for(var i=0;i<d.length;i+=4){
       var v=(Math.random()*255)|0;
       d[i]=v; d[i+1]=v; d[i+2]=v; d[i+3]=16;
     }
-    x.putImageData(img,0,0);
-    c.style.width='100%'; c.style.height='100%';
-  }
-  grain();
-  var t; addEventListener('resize',function(){ clearTimeout(t); t=setTimeout(grain,220); });
-
-  if(matchMedia('(prefers-reduced-motion: no-preference)').matches && 'IntersectionObserver' in window){
-    var io=new IntersectionObserver(function(es){
-      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-    },{rootMargin:'0px 0px -8% 0px'});
-    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
-  } else {
-    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
-  }
+    g.putImageData(img,0,0);
+    document.getElementById('grain').style.backgroundImage='url('+cv.toDataURL('image/png')+')';
+  }catch(e){}
 })();
 </script>
